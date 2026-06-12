@@ -124,11 +124,12 @@ Run one poller instance per mailbox.
   acks `failed` and the sender sees the reason in `state.py msg replies`.
   The poller also derives an error report to the supervisor from that
   failed ack (one fact, one writer) — do **not** also report the failure
-  yourself with `msg report`.
+  yourself with `msg error`.
 - **Partial:** send partial results via `reply_to` before the session
   ends; the ack captures whatever stdout remains.
 - **Errors/warnings outside the dispatched task** (e.g. broken local
-  setup noticed in passing): `state.py msg report error|warn`. No
+  setup noticed in passing): `state.py msg error` (actionable) or
+  `state.py msg report` (informational). No
   destination is given — the server resolves the current supervisor from
   the owner-edited routing table. See `lifecycle.md` in the shared
   command-docs for the full error path.
