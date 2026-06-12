@@ -151,6 +151,14 @@ Run one poller instance per mailbox.
   The poller also derives an error report to the supervisor from that
   failed ack (one fact, one writer) — do **not** also report the failure
   yourself with `msg error`.
+- **Rejections carry usage:** when the failure is a rejection of the
+  message itself (bad arguments, malformed body), the rejection text
+  must include the command's usage / expected body format — a raw
+  runner prints the usage in the rejection before its nonzero exit; an
+  LLM command includes the usage after the `FAILED: <reason>` line. The
+  failed ack then documents the correct call for both the sender (via
+  `msg replies`) and the supervisor (in the derived error report),
+  making a corrected resend the cheap repair.
 - **Partial:** send partial results to the sender as a threaded reply
   before the session ends; the ack captures whatever stdout remains.
 - **Errors/warnings outside the dispatched task** (e.g. broken local

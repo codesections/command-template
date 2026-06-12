@@ -8,5 +8,8 @@ repo's runner invoked with the claimed message as a JSON file (a raw-json comman
 message body for its arguments and, when done, sends its results back to the sender's mailbox as a threaded
 reply (its `reply_to` set to the triggering message's id). A failed dispatch is reported to the server-assigned
 supervisor by the poller, from the failed ack; `state.py msg error` / `state.py msg report` cover errors
-outside a dispatched task (see command-docs).
+outside a dispatched task (see command-docs). A rejection (bad arguments, malformed body) must include the
+command's usage / expected body format in the rejection text — printed before the nonzero exit for a raw
+runner, after the `FAILED: <reason>` line for an LLM command — so the failed ack itself documents the
+correct call.
 
