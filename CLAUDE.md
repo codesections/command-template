@@ -4,8 +4,8 @@ This repo is a **template** for client commands — programs that run as
 message-dispatched headless Claude Code sessions in the personal state
 system (`api.codesections.com`). Copy it when creating a new command.
 
-The full system is documented in `/home/fw13/Projects/api/docs/`. The
-reference client script is `/home/fw13/Projects/api/client/scripts/state.py`.
+The full system is documented in `/home/fw13/Projects/api.codesection.com/api/docs/`. The
+reference client script is `/home/fw13/Projects/api.codesection.com/api/client/scripts/state.py`.
 
 ---
 
@@ -25,9 +25,32 @@ name without encoding the full task as freeform prose.
 
 ---
 
+## Two command shapes
+
+A command is implemented in one of two dispatch styles (the poller's
+`--arg-style` / `STATE_MSG_ARG_STYLE`):
+
+- **LLM command** (`prompt`, the default): the poller builds a prompt
+  from the message and spawns `claude -p`, usually with the command's
+  `profile.md` appended via `--append-system-prompt-file`. The headless
+  operating contract below applies, including the `FAILED:` sentinel.
+- **Raw runner** (`raw-json`): a deterministic, non-LLM program. The
+  poller writes the full claimed message object to a JSON file and
+  invokes the runner with that path as its final argument. No prompt is
+  built and the `FAILED:` sentinel does not apply — the runner's exit
+  code is the failure signal (0 → `done`, nonzero → `failed`). stdout
+  still becomes the ack result.
+
+See `lifecycle.md` in the shared command-docs for the contract both
+shapes follow.
+
+---
+
 ## Operating contract (headless sessions)
 
-Every session dispatched by the poller runs **unattended**. No human can
+These rules bind the dispatched **LLM** session (`prompt` style); a raw
+runner replaces the sentinel with its exit code. Every session dispatched
+by the poller runs **unattended**. No human can
 approve interactive prompts. This creates binding rules:
 
 - **Prefer shell tools over MCP tools.** `gh`, `git`, `python3`, `curl`
@@ -49,13 +72,15 @@ approve interactive prompts. This creates binding rules:
 
 ## Message lifecycle for a command
 
-A message arrives at the command's mailbox (e.g. `code::fw13::$COMMAND`).
+A message arrives at the command's mailbox (e.g. `code::fw13::cmd::$COMMAND`).
 The poller:
 
 1. Claims it (`POST /msg/{id}/claim`) — the server-side CAS; a 409 means
    another worker won, don't act.
 2. Writes the body to a temp file.
-3. Spawns: `claude -p "<prompt with body file: <path>>"`.
+3. Spawns: `claude -p "<prompt with body file: <path>>"` (prompt style;
+   in raw-json style it writes the full message object as JSON and passes
+   that file's path to the runner instead).
 4. Acks with the session's stdout as result.
 
 Inside the dispatched session (this command):
@@ -72,7 +97,7 @@ Inside the dispatched session (this command):
 ## Using state.py
 
 All API interactions go through `state.py` — never direct HTTP. The
-script lives at `/home/fw13/Projects/api/client/scripts/state.py`; in
+script lives at `/home/fw13/Projects/api.codesection.com/api/client/scripts/state.py`; in
 deployed command packages it is included alongside the command.
 
 Key commands:
@@ -98,20 +123,20 @@ automatically; never `cat` or print the secrets file.
 ## Mailbox subscription
 
 Each command subscribes to a namespaced mailbox under the machine's
-client-id, e.g. `code::fw13::$COMMAND`. Subscribe at startup
+client-id, e.g. `code::fw13::cmd::$COMMAND`. Subscribe at startup
 (idempotent):
 
 ```sh
-state.py msg subscribe --as code::fw13::$COMMAND --note "$COMMAND handler"
+state.py msg subscribe --as code::fw13::cmd::$COMMAND --note "$COMMAND handler"
 ```
 
 The poller must be pointed at this mailbox:
 
 ```
-STATE_MSG_MAILBOX=code::fw13::$COMMAND
+STATE_MSG_MAILBOX=code::fw13::cmd::$COMMAND
 ```
 
-or passed via `--mailbox code::fw13::$COMMAND` on the poller invocation.
+or passed via `--mailbox code::fw13::cmd::$COMMAND` on the poller invocation.
 Run one poller instance per mailbox.
 
 ---
@@ -141,10 +166,10 @@ Run one poller instance per mailbox.
 
 | What | Where |
 |------|-------|
-| Full system docs | `/home/fw13/Projects/api/docs/` |
-| Client script | `/home/fw13/Projects/api/client/scripts/state.py` |
-| Poller (dispatch logic) | `/home/fw13/Projects/api/client/poller/msg_poller.py` |
-| Poller README | `/home/fw13/Projects/api/client/poller/README.md` |
-| Client guide (secrets, install) | `/home/fw13/Projects/api/docs/client-guide.md` |
-| Messaging design | `/home/fw13/Projects/api/docs/messaging-design.md` |
-| API reference | `/home/fw13/Projects/api/docs/api-reference.md` |
+| Full system docs | `/home/fw13/Projects/api.codesection.com/api/docs/` |
+| Client script | `/home/fw13/Projects/api.codesection.com/api/client/scripts/state.py` |
+| Poller (dispatch logic) | `/home/fw13/Projects/api.codesection.com/api/client/poller/msg_poller.py` |
+| Poller README | `/home/fw13/Projects/api.codesection.com/api/client/poller/README.md` |
+| Client guide (secrets, install) | `/home/fw13/Projects/api.codesection.com/api/docs/client-guide.md` |
+| Messaging design | `/home/fw13/Projects/api.codesection.com/api/docs/messaging-design.md` |
+| API reference | `/home/fw13/Projects/api.codesection.com/api/docs/api-reference.md` |
