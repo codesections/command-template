@@ -61,8 +61,8 @@ The poller:
 Inside the dispatched session (this command):
 
 1. Read the body file for arguments: `cat <path>` or parse as needed.
-2. Check for a `reply_to` field in the message metadata — if present,
-   send results back there with `state.py msg send --to <reply_to>
+2. Send results back to the sender's mailbox, threaded under the
+   triggering message: `state.py msg send --to <sender>
    --reply-to <id> --subject "done" --body-file <result>`.
 3. Output a compact result line to stdout. If anything went wrong,
    output `FAILED: <reason>` as the **first line of stdout**.
@@ -119,14 +119,15 @@ Run one poller instance per mailbox.
 ## Result / error reporting
 
 - **Success:** print the result (compact summary + artifact links) on
-  stdout. If a `reply_to` was given, send there too.
+  stdout. Also send the result to the sender's mailbox, threaded via
+  `--reply-to <triggering message id>`.
 - **Failure:** first stdout line must be `FAILED: <reason>`. The poller
   acks `failed` and the sender sees the reason in `state.py msg replies`.
   The poller also derives an error report to the supervisor from that
   failed ack (one fact, one writer) — do **not** also report the failure
   yourself with `msg error`.
-- **Partial:** send partial results via `reply_to` before the session
-  ends; the ack captures whatever stdout remains.
+- **Partial:** send partial results to the sender as a threaded reply
+  before the session ends; the ack captures whatever stdout remains.
 - **Errors/warnings outside the dispatched task** (e.g. broken local
   setup noticed in passing): `state.py msg error` (actionable) or
   `state.py msg report` (informational). No
