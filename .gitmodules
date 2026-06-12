@@ -1,0 +1,3 @@
+[submodule "cmd-docs"]
+	path = command-docs
+	url = git@github.com:codesections/command-docs.git
